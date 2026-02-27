@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SicboSunwin</title>
+  <style>
+    :root {
+      --bg-color: #0d1117;
+      --card-bg-dark: rgba(0, 0, 0, 0.6);
+      --text-color: #ffffff;
+      --shadow-color: rgba(0, 150, 255, 0.7);
+      --warning-color: #ffaa00;
+      --success-color: #38b449;
+      --danger-color: #e51d38;
+      --font-size-info: 14px;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      overflow: hidden;
+    }
+    .draggable-box {
+      position: fixed;
+      top: 20px;
+      left: 200px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 9999;
+      cursor: grab;
+      user-select: none;
+      transition: none; 
+      transform-origin: top left;
+    }
+    .robot-container {
+        position: relative;
+    }
+    .robot-container img {
+      width: 100px;
+      border-radius: 50%;
+    }
+    .prediction-box {
+      background: var(--card-bg-dark);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      padding: 10px 15px;
+      border-radius: 25px;
+      min-width: 180px; 
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 15px var(--shadow-color);
+      transition: box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.3;
+    }
+    .prediction-box:hover {
+      box-shadow: 0 0 25px var(--shadow-color);
+    }
+    .session-line {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      font-weight: 700; 
+      font-size: var(--font-size-info); 
+      margin: 3px 0;
+      white-space: nowrap;
+    }
+    .session-line .label {
+      text-align: left;
+      color: var(--text-color);
+      padding-right: 4px;
+      font-family: 'Times New Roman', serif; 
+    }
+    .session-line .value {
+      text-align: left;
+      font-family: 'Times New Roman', serif;
+    }
+    .waiting-text {
+        font-weight: 700; 
+        font-size: 16px; 
+        text-align: center;
+        color: var(--warning-color);
+        padding: 10px 0;
+        font-family: 'Times New Roman', serif;
+    }
+    .value.tai {
+      color: var(--danger-color);
+    }
+    .value.xiu {
+      color: var(--success-color);
+    }
+    .value.vi {
+      color: var(--warning-color);
+      font-family: 'Times New Roman', serif; 
+    }
+    .value.default {
+        color: var(--text-color);
+        font-family: 'Times New Roman', serif;
+    }
+    .menu-panel {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .menu-button, .toggle-button, .back-button {
+      background: var(--card-bg-dark);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 18px;
+      padding: 10px 15px; 
+      color: #fff;
+      font-weight: bold;
+      font-size: 14px;
+      text-decoration: none;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      min-width: 100px;
+      max-width: 150px;
+    }
+    .menu-button:hover, .toggle-button:hover, .back-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+    }
+    .toggle-button.active i.fas {
+        color: var(--success-color);
+    }
+    .toggle-button.inactive i.fas {
+        color: var(--danger-color);
+    }
+    .menu-controls {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .menu-controls.open {
+        display: flex;
+    }
+  
+
+    /* ===== ẨN GIAO DIỆN CHO ĐẾN KHI ĐĂNG NHẬP ===== */
+    #mainUI { display: none; }
+
+    /* ===== LOGIN SCREEN ===== */
+    #loginScreen {
+      position: fixed; inset: 0; z-index: 999999;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Poppins', 'Segoe UI', sans-serif;
+      overflow: hidden;
+      background-color: #0D1117;
+      background-image: url('https://i.postimg.cc/yYmj6vYd/1758217953804.png');
+      background-size: cover; background-position: center;
+    }
+    @keyframes ls-fadeIn  { from{opacity:0;transform:translateY(15px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes ls-fadeOut { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(-15px)} }
+    @keyframes ls-pulseGlow {
+      0%,100%{text-shadow:0 0 4px #3081F7;color:#3081F7}
+      50%{text-shadow:0 0 12px #3081F7;color:#fff}
+    }
+    @keyframes ls-spin { to{transform:rotate(360deg)} }
+    .ls-container {
+      width:100%; max-width:400px; padding:20px;
+      animation: ls-fadeIn 0.8s ease-out forwards;
+    }
+    .ls-frame {
+      background: rgba(22,27,34,0.85);
+      border: 1px solid rgba(56,139,253,0.3);
+      border-radius: 16px; padding: 35px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 50px rgba(0,0,0,0.5), 0 0 25px rgba(56,139,253,0.3);
+    }
+    .ls-logo-wrap {
+      display:flex; justify-content:center; margin-bottom:18px;
+    }
+    .ls-logo {
+      width:80px; height:80px; border-radius:50%; object-fit:cover;
+      border:2px solid rgba(56,139,253,0.5);
+      box-shadow:0 0 20px rgba(56,139,253,0.4);
+    }
+    .ls-title {
+      font-family:'Orbitron','Segoe UI',sans-serif;
+      text-align:center; margin-bottom:28px;
+      font-size:20px; letter-spacing:2px; text-transform:uppercase;
+      animation: ls-pulseGlow 4s ease-in-out infinite;
+    }
+    /* Views */
+    #ls-login-view, #ls-register-view { display:none; }
+    #ls-login-view.ls-active, #ls-register-view.ls-active {
+      display:block; animation:ls-fadeIn 0.3s forwards;
+    }
+    /* Input */
+    .ls-input-group { position:relative; margin-bottom:18px; }
+    .ls-input-icon {
+      position:absolute; left:14px; top:50%; transform:translateY(-50%);
+      color:rgba(56,139,253,0.6); font-size:14px; pointer-events:none;
+      transition:color 0.3s;
+    }
+    .ls-input {
+      width:100%; box-sizing:border-box;
+      padding:12px 42px 12px 42px;
+      border-radius:9px; border:1px solid rgba(56,139,253,0.3);
+      background:rgba(13,17,23,0.6); color:#E6EDF3;
+      font-family:'Poppins','Segoe UI',sans-serif; font-size:14px;
+      outline:none; transition:all 0.3s;
+    }
+    .ls-input:focus {
+      border-color:rgba(56,139,253,0.8);
+      box-shadow:0 0 10px rgba(56,139,253,0.3);
+    }
+    .ls-input::placeholder { color:rgba(255,255,255,0.25); }
+    .ls-eye {
+      position:absolute; right:13px; top:50%; transform:translateY(-50%);
+      cursor:pointer; color:rgba(255,255,255,0.35); font-size:14px;
+      transition:color 0.2s; user-select:none;
+    }
+    .ls-eye:hover { color:#3081F7; }
+    /* Button */
+    .ls-btn {
+      width:100%; padding:13px; margin-top:6px;
+      border-radius:9px; border:none;
+      background:#3081F7; color:#fff;
+      font-family:'Orbitron','Segoe UI',sans-serif;
+      font-size:14px; font-weight:700;
+      letter-spacing:1.5px; text-transform:uppercase;
+      cursor:pointer; transition:all 0.3s;
+      box-shadow:0 4px 15px rgba(48,129,247,0.35);
+    }
+    .ls-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 20px rgba(48,129,247,0.5); }
+    .ls-btn:disabled { opacity:0.45; cursor:not-allowed; }
+    /* Status */
+    #ls-status {
+      margin-top:14px; font-size:12.5px; min-height:18px;
+      font-weight:600; text-align:center;
+    }
+    .ls-status-loading { color:#ffcc44; }
+    .ls-status-error   { color:#ff5566; }
+    .ls-status-ok      { color:#44ee88; }
+    .ls-spinner {
+      display:inline-block; width:13px; height:13px;
+      border:2px solid rgba(255,255,255,0.3); border-top-color:#fff;
+      border-radius:50%; animation:ls-spin 0.7s linear infinite;
+      vertical-align:middle; margin-right:5px;
+    }
+    /* Links */
+    .ls-links { text-align:center; margin-top:20px; font-size:13px; }
+    .ls-links a {
+      color:#3081F7; text-decoration:none; font-weight:500; cursor:pointer;
+      transition:all 0.3s;
+    }
+    .ls-links a:hover { color:#fff; text-decoration:underline; }
+    /* User info box */
+    #ls-userinfo {
+      display:none; margin-top:14px;
+      background:rgba(56,139,253,0.08);
+      border:1px solid rgba(56,139,253,0.2);
+      border-radius:10px; padding:12px 14px;
+      font-size:12px; color:rgba(255,255,255,0.7);
+      line-height:1.7;
+    }
+    #ls-userinfo.show { display:block; }
+    #ls-userinfo b { color:#3081F7; }
+    /* Footer */
+    .ls-footer {
+      text-align:center; margin-top:20px;
+      font-size:9.5px; letter-spacing:2px;
+      color:rgba(255,255,255,0.12);
+      font-family:'Orbitron',monospace;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ===== LOGIN SCREEN ===== -->
+  <div id="loginScreen">
+    <div class="ls-container">
+      <div class="ls-frame">
+        <div class="ls-logo-wrap">
+          <img src="https://i.postimg.cc/63bdy9D9/robotics-1.gif" alt="Logo" class="ls-logo">
+        </div>
+        <div class="ls-title"><i class="fas fa-shield-alt"></i> XÁC THỰC KEY <i class="fas fa-shield-alt"></i></div>
+        <div class="ls-input-group">
+          <i class="fas fa-key ls-input-icon"></i>
+          <input type="password" id="ls-key" class="ls-input" placeholder="Nhập key của bạn...">
+          <span class="ls-eye" onclick="lsTogglePass('ls-key',this)"><i class="fas fa-eye"></i></span>
+        </div>
+        <button class="ls-btn" id="ls-login-btn" onclick="lsVerifyKey()"><i class="fas fa-rocket"></i> ĐĂNG NHẬP</button>
+        <div id="ls-status"></div>
+        <div id="ls-userinfo"></div>
+        <div class="ls-footer">⚡ POWERED BY AI MASTER SYSTEM ⚡</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainUI">
+  <div class="menu-panel">
+      <button class="menu-button" id="menuButton">
+          <i class="fas fa-bars"></i> 𝐌𝐞𝐧𝐮
+      </button>
+      <div class="menu-controls" id="menuControls">
+          <a href="dashboardtool.html" class="back-button">
+              <i class="fas fa-arrow-left"></i> 𝐐𝐮𝐚𝐲 𝐯ề
+          </a>
+          <button class="toggle-button active" id="toggleRobotButton">
+              <i class="fas fa-toggle-on"></i> 𝐁ậ𝐭 𝐑𝐨𝐛𝐨𝐭
+          </button>
+      </div>
+  </div>
+
+  <div class="draggable-box" id="dragBox"> 
+    <div class="robot-container">
+      <img src="https://i.postimg.cc/63bdy9D9/robotics-1.gif" alt="Robot">
+    </div>
+    <div class="prediction-box">
+      <div id="prediction-content">
+        <div id="phien-truoc-line" class="session-line">
+          <span class="label">𝐊ế𝐭 𝐪𝐮ả #<span id="phien-truoc-id"></span>:</span>
+          <span class="value default" id="phien-truoc-text"></span>
+        </div>
+        <div id="phien-line" class="session-line">
+          <span class="label">#𝐏𝐡𝐢ê𝐧:</span>
+          <span class="value default" id="phien-text">Đ𝐚𝐧𝐠 𝐤𝐡ở𝐢 độ𝐧𝐠 𝐑𝐨𝐛𝐨𝐭...</span>
+        </div>
+        <div id="du-doan-line" class="session-line">
+          <span class="label">𝐃ự Đ𝐨á𝐧:</span>
+          <span class="value" id="du-doan-text"></span>
+        </div>
+        <div id="loai-cau-line" class="session-line">
+          <span class="label">𝐂ầ𝐮:</span>
+          <span class="value default" id="loai-cau-text"></span>
+        </div>
+        <div id="do-tin-cay-line" class="session-line">
+          <span class="label">Độ 𝐓𝐢𝐧 𝐂ậ𝐲:</span>
+          <span class="value default" id="do-tin-cay-text"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <iframe src="https://web.sunwin.pw/?affId=Sunwin" frameborder="0" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:1"></iframe>
+  </div><!-- /#mainUI -->
+  
+  <script>
+    function startToolFunctions() {
+        const YOUR_API_URL = "https://sunwinsaygex-18fe.onrender.com/api/sun"; 
+        
+        const PROXY_URLS = [
+            "https://api.allorigins.win/raw?url=",
+            "https://corsproxy.io/?",
+            "https://api.codetabs.com/v1/proxy?quest="
+        ];
+        
+        const REFRESH_MS = 3000; // Tăng lên 3s để server Render ổn định hơn
+        const NEW_SESSION_WAIT_MS = 1500; 
+        const DRAG_TRANSITION_MS = 300;
+        let currentProxyIndex = 0;
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+        
+        const TEXT_WAITING = "🕒 𝐂𝐡ờ 𝐏𝐡𝐢ê𝐧 𝐌ớ𝐢...";
+        const TEXT_STARTING = "Đ𝐚𝐧𝐠 𝐤𝐡ở𝐢 độ𝐧𝐠 𝐑𝐨𝐛𝐨𝐭...";
+        const TEXT_ROBOT_OFF = "𝐑𝐨𝐛𝐨𝐭 đã 𝐭ắ𝐭";
+        const TEXT_API_ERROR_TITLE = "𝐋ỗ𝐢 𝐀𝐩𝐢";
+        const TEXT_API_ERROR_DETAIL = "𝐊𝐢ể𝐦 𝐓𝐫𝐚 𝐊ế𝐭 𝐍ố𝐢";
+        const TEXT_DISCONNECTED = "𝐌ấ𝐭 𝐊ế𝐭 𝐍ố𝐢";
+        const TEXT_RETRY = "Đ𝐚𝐧𝐠 𝐓𝐡ử 𝐋ạ𝐢...";
+
+        const dragBox = document.getElementById("dragBox");
+        const predictionContent = document.getElementById("prediction-content");
+        const phienTruocId = document.getElementById("phien-truoc-id");
+        const phienTruocText = document.getElementById("phien-truoc-text");
+        const phienText = document.getElementById("phien-text");
+        const duDoanText = document.getElementById("du-doan-text");
+        const loaiCauText = document.getElementById("loai-cau-text");
+        const doTinCayText = document.getElementById("do-tin-cay-text");
+        const menuButton = document.getElementById("menuButton");
+        const menuControls = document.getElementById("menuControls");
+        const toggleRobotButton = document.getElementById("toggleRobotButton");
+        
+        let currentPhien = null;
+        let isProcessing = false;
+        let isWaitingForNewSession = false;
+        let isDisplayingPrediction = false;
+        let isRobotEnabled = true;
+
+        const capitalizeFirstLetter = (s) => {
+            if (!s) return '';
+            const lowerS = s.toLowerCase();
+            return lowerS.charAt(0).toUpperCase() + lowerS.slice(1);
+        };
+        
+        const convertToBoldSpecial = (text) => {
+            const map = {
+                'A': '𝐀', 'B': '𝐁', 'C': '𝐂', 'D': '𝐃', 'E': '𝐄', 'F': '𝐅', 'G': '𝐆', 'H': '𝐇', 'I': '𝐈', 'J': '𝐉', 'K': '𝐊', 'L': '𝐋', 'M': '𝐌', 'N': '𝐍', 'O': '𝐎', 'P': '𝐏', 'Q': '𝐐', 'R': '𝐑', 'S': '𝐒', 'T': '𝐓', 'U': '𝐔', 'V': '𝐕', 'W': '𝐖', 'X': '𝐗', 'Y': '𝐘', 'Z': '𝐙',
+                'a': '𝐚', 'b': '𝐛', 'c': '𝐜', 'd': '𝐝', 'e': '𝐞', 'f': '𝐟', 'g': '𝐠', 'h': '𝐡', 'i': '𝐢', 'j': '𝐣', 'k': '𝐤', 'l': '𝐥', 'm': '𝐦', 'n': '𝐧', 'o': '𝐨', 'p': '𝐩', 'q': '𝐪', 'r': '𝐫', 's': '𝐬', 't': '𝐭', 'u': '𝐮', 'v': '𝐯', 'w': '𝐰', 'x': '𝐱', 'y': '𝐲', 'z': '𝐳',
+                '0': '𝟎', '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒', '5': '𝟓', '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗'
+            };
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                result += map[char] || char; 
+            }
+            return result;
+        };
+
+        function setPredictionDisplay(show) {
+            predictionContent.style.display = show ? 'block' : 'none';
+        }
+
+        function setText(phien, duDoan, loaiCau, doTinCay, phienTruoc = "", ketQuaTruoc = "") {
+            setPredictionDisplay(true);
+            isDisplayingPrediction = true;
+            
+            const formattedDuDoan = capitalizeFirstLetter(duDoan);
+
+            phienText.textContent = convertToBoldSpecial(String(phien));
+            loaiCauText.textContent = loaiCau ? convertToBoldSpecial(loaiCau) : '';
+            doTinCayText.textContent = doTinCay ? convertToBoldSpecial(String(doTinCay)) : convertToBoldSpecial("95%");
+            
+            phienTruocId.textContent = convertToBoldSpecial(String(phienTruoc));
+            phienTruocText.textContent = convertToBoldSpecial(ketQuaTruoc);
+            
+            duDoanText.textContent = convertToBoldSpecial(formattedDuDoan);
+            duDoanText.className = 'value';
+            if (formattedDuDoan.includes('Tài')) {
+                duDoanText.classList.add('tai');
+            } else if (formattedDuDoan.includes('Xỉu')) {
+                duDoanText.classList.add('xiu');
+            } else if (formattedDuDoan === '') {
+                duDoanText.classList.add('default');
+                duDoanText.textContent = '';
+            } else {
+                duDoanText.classList.add('default');
+            }
+        }
+        
+        function setWaitingText(text) {
+            setPredictionDisplay(false);
+            isDisplayingPrediction = false;
+            
+            const box = dragBox.querySelector('.prediction-box');
+            
+            let waitingDiv = box.querySelector('.waiting-text');
+            if (waitingDiv) {
+                waitingDiv.textContent = text;
+                return;
+            }
+            
+            box.innerHTML = ''; 
+            waitingDiv = document.createElement('div');
+            waitingDiv.className = 'waiting-text';
+            waitingDiv.textContent = text;
+            box.appendChild(waitingDiv);
+        }
+        
+        function resetBoxContent() {
+            const box = dragBox.querySelector('.prediction-box');
+            const waitingDiv = box.querySelector('.waiting-text');
+            if (waitingDiv) {
+                box.removeChild(waitingDiv);
+            }
+            
+            if (!box.contains(predictionContent)) {
+                 box.appendChild(predictionContent);
+            }
+        }
+
+        function toggleRobotDisplay(enabled) {
+            isRobotEnabled = enabled;
+            if (enabled) {
+                toggleRobotButton.innerHTML = '<i class="fas fa-toggle-on"></i> 𝐁ậ𝐭 𝐑𝐨𝐛𝐨𝐭';
+                toggleRobotButton.classList.remove('inactive');
+                toggleRobotButton.classList.add('active');
+                dragBox.style.display = 'flex';
+                resetBoxContent();
+                setText("", TEXT_STARTING, "", "", "", "");
+                currentPhien = null;
+                isWaitingForNewSession = false;
+                isDisplayingPrediction = false;
+                retryCount = 0;
+            } else {
+                toggleRobotButton.innerHTML = '<i class="fas fa-toggle-off"></i> 𝐓ắ𝐭 𝐑𝐨𝐛𝐨𝐭';
+                toggleRobotButton.classList.remove('active');
+                toggleRobotButton.classList.add('inactive');
+                dragBox.style.display = 'none';
+                resetBoxContent();
+                setText("", TEXT_ROBOT_OFF, "", "", "", "");
+                isWaitingForNewSession = false;
+                isDisplayingPrediction = false;
+            }
+        }
+
+        async function fetchWithTimeout(url, options, timeout = 10000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(id);
+                return response;
+            } catch (e) {
+                clearTimeout(id);
+                throw e;
+            }
+        }
+
+        async function fetchWithFallback() {
+            const timestamp = new Date().getTime();
+            const apiUrlWithTimestamp = `${YOUR_API_URL}?t=${timestamp}`;
+            
+            try {
+                const res = await fetchWithTimeout(apiUrlWithTimestamp, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                }, 15000); // Tăng timeout lên 15s cho lần gọi trực tiếp (để đợi Render thức dậy)
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log("Direct fetch success:", data);
+                    retryCount = 0;
+                    return data;
+                }
+            } catch (e) {
+                console.log("Direct fetch failed:", e.message);
+            }
+
+            for (let i = 0; i < PROXY_URLS.length; i++) {
+                const proxyIndex = (currentProxyIndex + i) % PROXY_URLS.length;
+                const proxyUrl = PROXY_URLS[proxyIndex];
+                const proxiedUrl = `${proxyUrl}${encodeURIComponent(apiUrlWithTimestamp)}`;
+                
+                try {
+                    const res = await fetchWithTimeout(proxiedUrl, {
+                        method: 'GET',
+                        cache: 'no-store'
+                    }, 10000);
+                    if (res.ok) {
+                        const data = await res.json();
+                        console.log(`Proxy ${proxyIndex + 1} success:`, data);
+                        currentProxyIndex = proxyIndex;
+                        retryCount = 0;
+                        return data;
+                    }
+                } catch (e) {
+                    console.log(`Proxy ${proxyIndex + 1} failed:`, e.message);
+                }
+            }
+
+            try {
+                console.log("Trying JSONP...");
+                const jsonpUrl = `${YOUR_API_URL}?callback=handleApiResponse&t=${timestamp}`;
+                return await new Promise((resolve, reject) => {
+                    window.handleApiResponse = (data) => {
+                        console.log("JSONP success:", data);
+                        retryCount = 0;
+                        resolve(data);
+                        delete window.handleApiResponse;
+                    };
+                    
+                    const script = document.createElement('script');
+                    script.src = jsonpUrl;
+                    script.onerror = () => {
+                        console.log("JSONP failed");
+                        reject(new Error("JSONP failed"));
+                        delete window.handleApiResponse;
+                    };
+                    document.head.appendChild(script);
+                    
+                    setTimeout(() => {
+                        if (window.handleApiResponse) {
+                            reject(new Error("JSONP timeout"));
+                            delete window.handleApiResponse;
+                        }
+                        script.remove();
+                    }, 10000);
+                });
+            } catch (e) {
+                console.log("JSONP failed:", e.message);
+            }
+
+            throw new Error("All connection methods failed");
+        }
+
+        async function fetchAndDisplayPrediction() {
+            if (!isRobotEnabled || isProcessing) {
+                return;
+            }
+
+            if (isWaitingForNewSession) {
+                setWaitingText(TEXT_WAITING); 
+                return;
+            }
+
+            isProcessing = true;
+            try {
+                const data = await fetchWithFallback();
+
+                if (data && (data.phien_du_doan || data.phien_hien_tai)) {
+                    // API mới: phien_du_doan là phiên cần dự đoán
+                    const newPhien = parseInt(data.phien_du_doan || data.phien_hien_tai);
+                    
+                    if (isNaN(newPhien)) throw new Error("Dữ liệu phiên không hợp lệ");
+
+                    const duDoan   = data.du_doan  || "Đang tính...";
+                    const loaiCau  = data.loai_cau || "";
+                    const doTinCay = data.do_tin_cay || "95%";
+                    // Kết quả phiên trước
+                    const phienTruoc   = data.phien || (data.phien_hien_tai != newPhien ? data.phien_hien_tai : "") || "";
+                    
+                    let xucXacStr = "";
+                    if (Array.isArray(data.xuc_xac)) {
+                        xucXacStr = data.xuc_xac.join('-');
+                    } else if (data.xuc_xac_1 !== undefined) {
+                        xucXacStr = `${data.xuc_xac_1}-${data.xuc_xac_2}-${data.xuc_xac_3}`;
+                    }
+                    const tong = data.tong || data.tong_xuc_xac || "";
+
+                    const ketQuaTruoc  = data.ket_qua
+                        ? (xucXacStr ? `${data.ket_qua} [${xucXacStr}] (${tong})` : `${data.ket_qua} (${tong})`)
+                        : "";
+                    
+                    if (currentPhien === null) {
+                        currentPhien = newPhien;
+                        resetBoxContent();
+                        setText(newPhien, duDoan, loaiCau, doTinCay, phienTruoc, ketQuaTruoc);
+                        isProcessing = false;
+                        return;
+                    }
+                    
+                    if (newPhien > currentPhien) {
+                        currentPhien = newPhien;
+                        isWaitingForNewSession = true;
+                        
+                        setWaitingText(TEXT_WAITING); 
+                        
+                        isProcessing = false; 
+
+                        setTimeout(() => {
+                            isWaitingForNewSession = false;
+                            resetBoxContent();
+                            setText(newPhien, duDoan, loaiCau, doTinCay, phienTruoc, ketQuaTruoc);
+                        }, NEW_SESSION_WAIT_MS); 
+
+                    } else if (newPhien === currentPhien) {
+                        if (!isDisplayingPrediction) {
+                            resetBoxContent();
+                            setText(newPhien, duDoan, loaiCau, doTinCay, phienTruoc, ketQuaTruoc);
+                        }
+                        isProcessing = false;
+                        
+                    } else {
+                        resetBoxContent();
+                        setText(TEXT_API_ERROR_TITLE, TEXT_API_ERROR_DETAIL, "", "...");
+                        isProcessing = false;
+                    }
+
+                } else {
+                    isProcessing = false;
+                    resetBoxContent();
+                    setText(TEXT_API_ERROR_TITLE, TEXT_API_ERROR_DETAIL, "", "...");
+                }
+            } catch (e) {
+                console.error("Lỗi Api:", e);
+                retryCount++;
+                isProcessing = false;
+                
+                if (!isWaitingForNewSession) {
+                    resetBoxContent();
+                    if (retryCount >= MAX_RETRIES) {
+                        setText(TEXT_DISCONNECTED, `${TEXT_RETRY} (${retryCount})`, "", "...");
+                    } else {
+                        setText(TEXT_DISCONNECTED, TEXT_RETRY, "", "...");
+                    }
+                }
+            }
+        }
+
+        setInterval(fetchAndDisplayPrediction, REFRESH_MS);
+
+        toggleRobotButton.addEventListener('click', () => {
+            toggleRobotDisplay(!isRobotEnabled);
+            menuControls.classList.remove('open');
+        });
+
+        menuButton.addEventListener('click', () => {
+            menuControls.classList.toggle('open');
+        });
+
+        let offsetX, offsetY, isDragging = false;
+
+        function getClientCoordinates(e) { return e.touches ? e.touches[0] : e; }
+        
+        function handleDragStart(e) {
+            isDragging = true;
+            const touch = getClientCoordinates(e);
+            const rect = dragBox.getBoundingClientRect();
+            offsetX = touch.clientX - rect.left;
+            offsetY = touch.clientY - rect.top;
+            dragBox.style.cursor = 'grabbing';
+            dragBox.style.transition = 'none';
+        }
+
+        function handleDragMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const touch = getClientCoordinates(e);
+            
+            let newX = touch.clientX - offsetX;
+            let newY = touch.clientY - offsetY;
+            
+            const minX = 0;
+            const minY = 0;
+            const maxX = window.innerWidth - dragBox.offsetWidth;
+            const maxY = window.innerHeight - dragBox.offsetHeight;
+
+            newX = Math.max(minX, Math.min(newX, maxX));
+            newY = Math.max(minY, Math.min(newY, maxY));
+
+            dragBox.style.left = `${newX}px`;
+            dragBox.style.top = `${newY}px`;
+        }
+
+        function handleDragEnd() {
+            if (!isDragging) return;
+            isDragging = false;
+            dragBox.style.cursor = 'grab';
+            dragBox.style.transition = `transform ${DRAG_TRANSITION_MS}ms ease, top ${DRAG_TRANSITION_MS}ms ease, left ${DRAG_TRANSITION_MS}ms ease`;
+        }
+
+        dragBox.addEventListener("mousedown", handleDragStart);
+        document.addEventListener("mousemove", handleDragMove);
+        document.addEventListener("mouseup", handleDragEnd);
+        dragBox.addEventListener("touchstart", handleDragStart, { passive: false });
+        document.addEventListener("touchmove", handleDragMove, { passive: false });
+        document.addEventListener("touchend", handleDragEnd);
+        document.addEventListener("touchcancel", handleDragEnd);
+
+        document.addEventListener("keydown", function (e) {
+            if (
+                e.key === "F12" ||
+                (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C")) ||
+                (e.ctrlKey && e.key === "U")
+            ) {
+                e.preventDefault();
+                alert("crack cái con cặc ba mày");
+                return false;
+            }
+        });
+        document.addEventListener("contextmenu", function (e) {
+            e.preventDefault();
+        });
+
+        resetBoxContent();
+        setText("", TEXT_STARTING, "", "");
+    }
+    
+    startToolFunctions();
+  </script>
+
+  <script>
+  const KLS_API     = 'https://key-admin-sew.onrender.com';
+  const KLS_SESSION = 'sw_kls_session';
+  const loginScreen = document.getElementById('loginScreen');
+
+  function lsDeviceId() {
+    let id = localStorage.getItem('_sw_dev_id');
+    if (!id) {
+      id = 'WEB-' + Math.random().toString(36).slice(2,6).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+      localStorage.setItem('_sw_dev_id', id);
+    }
+    return id;
+  }
+  function lsDeviceName() {
+    const ua = navigator.userAgent;
+    if (/iPhone/.test(ua)) return 'iPhone';
+    if (/iPad/.test(ua)) return 'iPad';
+    if (/Android/.test(ua)) return 'Android';
+    if (/Windows/.test(ua)) return 'Windows PC';
+    if (/Mac/.test(ua)) return 'MacOS';
+    return 'Web Browser';
+  }
+  function lsTypeLabel(t) {
+    return {day:'1 Ngày', week:'1 Tuần', month:'1 Tháng', lifetime:'Vĩnh Viễn'}[t] || (t || 'Vĩnh Viễn');
+  }
+  function lsFormatDate(d) {
+    if (!d) return 'Vĩnh viễn';
+    return new Date(d).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+  function lsSetStatus(msg, type) {
+    const el = document.getElementById('ls-status');
+    el.innerHTML = type === 'loading' ? '<span class="ls-spinner"></span>' + msg : msg;
+    el.className = type ? 'ls-status-' + type : '';
+  }
+  function lsTogglePass(inputId, icon) {
+    const inp = document.getElementById(inputId);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    icon.innerHTML = inp.type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+  }
+  function lsUnlockUI() {
+    document.getElementById('mainUI').style.display = 'block';
+    loginScreen.style.transition = 'opacity 0.6s ease';
+    loginScreen.style.opacity = '0';
+    setTimeout(() => { loginScreen.style.display = 'none'; }, 600);
+  }
+
+  async function lsVerifyKey() {
+    const keyVal = document.getElementById('ls-key').value.trim().toUpperCase();
+    if (!keyVal)           { lsSetStatus('⚠ Vui lòng nhập key!', 'error'); return; }
+    if (keyVal.length < 6) { lsSetStatus('⚠ Key không hợp lệ!', 'error'); return; }
+
+    const btn = document.getElementById('ls-login-btn');
+    btn.disabled = true;
+    lsSetStatus('Đang xác thực...', 'loading');
+    document.getElementById('ls-userinfo').classList.remove('show');
+
+    const devId   = lsDeviceId();
+    const devName = lsDeviceName();
+
+    try {
+      const res = await fetch(KLS_API + '/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: keyVal, deviceId: devId, deviceName: devName })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        lsSetStatus('❌ ' + (data.message || 'Key không hợp lệ hoặc đã hết hạn!'), 'error');
+        btn.disabled = false; return;
+      }
+
+      // Lưu session
+      const user = data.user || {};
+      localStorage.setItem(KLS_SESSION, JSON.stringify({
+        key: keyVal, deviceId: devId,
+        verifiedAt: Date.now(),
+        expiresAt: user.expiresAt || null,
+        name: user.name, type: user.type
+      }));
+
+      // Hiện thông tin key
+      const infoEl = document.getElementById('ls-userinfo');
+      infoEl.innerHTML =
+        (user.name ? '<b>👤 ' + user.name + '</b><br>' : '') +
+        '📦 Gói: <b>' + lsTypeLabel(user.type) + '</b><br>' +
+        '📅 Hết hạn: <b>' + lsFormatDate(user.expiresAt) + '</b><br>' +
+        '💻 Thiết bị: <b>' + (user.deviceName || devName) + '</b>';
+      infoEl.classList.add('show');
+
+      lsSetStatus('✅ Xác thực thành công! Đang vào tool...', 'ok');
+      setTimeout(lsUnlockUI, 1500);
+
+    } catch(e) {
+      lsSetStatus('🌐 Lỗi kết nối server! Thử lại sau.', 'error');
+      btn.disabled = false;
+    }
+  }
+
+  // Enter key
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('ls-key').addEventListener('keydown', e => {
+      if (e.key === 'Enter') lsVerifyKey();
+    });
+  });
+
+  // Auto check session đã lưu
+  (async function lsCheckSession() {
+    const saved = localStorage.getItem(KLS_SESSION);
+    if (!saved) return;
+    try {
+      const sess = JSON.parse(saved);
+      if (sess.expiresAt && Date.now() > new Date(sess.expiresAt).getTime()) {
+        localStorage.removeItem(KLS_SESSION); return;
+      }
+      const res = await fetch(KLS_API + '/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: sess.key, deviceId: lsDeviceId(), deviceName: lsDeviceName() })
+      });
+      const data = await res.json();
+      if (data.success) { lsUnlockUI(); }
+      else { localStorage.removeItem(KLS_SESSION); }
+    } catch(e) {
+      try {
+        const sess = JSON.parse(saved);
+        if (!sess.expiresAt || Date.now() < new Date(sess.expiresAt).getTime()) lsUnlockUI();
+      } catch(e2) {}
+    }
+  })();
+  </script>
+
+</body></html>
