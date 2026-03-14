@@ -348,12 +348,12 @@
     </div>
   </div>
 
-  <iframe src="https://web.sunwin.lt/?affId=Sunwin" frameborder="0" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:1"></iframe>
+  <iframe src="https://web.sunwin.id/?affId=Sunwin" frameborder="0" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:1"></iframe>
   </div><!-- /#mainUI -->
   
   <script>
     function startToolFunctions() {
-        const YOUR_API_URL = "https://sunwin-v3boba.onrender.com/api/taixiu/predict"; 
+        const YOUR_API_URL = "https://apisunwin-v1.onrender.com/sunlon"; 
         
         const PROXY_URLS = [
             "https://api.allorigins.win/raw?url=",
@@ -607,28 +607,24 @@
             try {
                 const data = await fetchWithFallback();
 
-                if (data && (data.phien_du_doan || data.phien_hien_tai)) {
-                    // API mới: phien_du_doan là phiên cần dự đoán
-                    const newPhien = parseInt(data.phien_du_doan || data.phien_hien_tai);
-                    
+                if (data && data.phien) {
+                    const newPhien = parseInt(data.phien);
                     if (isNaN(newPhien)) throw new Error("Dữ liệu phiên không hợp lệ");
-
+                    const phienTruoc = newPhien - 1;
+                    
                     const duDoan   = data.du_doan  || "Đang tính...";
-                    const loaiCau  = data.loai_cau || "";
+                    const loaiCau  = data.pattern || "";
                     const doTinCay = data.do_tin_cay || "95%";
-                    // Kết quả phiên trước
-                    const phienTruoc   = data.phien || (data.phien_hien_tai != newPhien ? data.phien_hien_tai : "") || "";
                     
                     let xucXacStr = "";
-                    if (Array.isArray(data.xuc_xac)) {
-                        xucXacStr = data.xuc_xac.join('-');
-                    } else if (data.xuc_xac_1 !== undefined) {
-                        xucXacStr = `${data.xuc_xac_1}-${data.xuc_xac_2}-${data.xuc_xac_3}`;
+                    if (Array.isArray(data.ket_qua)) {
+                        xucXacStr = data.ket_qua.join('-');
                     }
-                    const tong = data.tong || data.tong_xuc_xac || "";
+                    const tong = data.tong || "";
 
-                    const ketQuaTruoc  = data.ket_qua
-                        ? (xucXacStr ? `${data.ket_qua} [${xucXacStr}] (${tong})` : `${data.ket_qua} (${tong})`)
+                    const resultStr = data.result || "";
+                    const ketQuaTruoc  = resultStr
+                        ? (xucXacStr ? `${resultStr} [${xucXacStr}] (${tong})` : `${resultStr} (${tong})`)
                         : "";
                     
                     if (currentPhien === null) {
